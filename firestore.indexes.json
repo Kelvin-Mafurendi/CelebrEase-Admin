@@ -1,0 +1,103 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "Customers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchName",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Customers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchUsername",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "FlashAds",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchTitle",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "searchDescription",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Highlights",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchPackageName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "packageName",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Packages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "packageId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "serviceType",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Packages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchPackageName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "packagename",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Vendors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "searchName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "searchUserName",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
