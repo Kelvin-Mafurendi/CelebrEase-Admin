@@ -1,6 +1,9 @@
 import 'package:celebrease_manager/Pages/main_screen.dart';
 import 'package:celebrease_manager/Pages/settings.dart';
+import 'package:celebrease_manager/modules/sample.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluentui_icons/fluentui_icons.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -20,6 +23,7 @@ class _HomeState extends State<Home> {
     color:Colors.grey.withOpacity(0.9),
   );
   final double expandedHeight = 200.0;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _navigate(int index) {
     setState(() {
@@ -33,7 +37,16 @@ class _HomeState extends State<Home> {
             color: Colors.grey.withOpacity(0.9),
           );
           break;
-        case 1:
+          case 1:{
+            page = CommunicationCenter();
+          titleIcon = Icon(
+            FluentSystemIcons.ic_fluent_chat_regular,
+            size: 50,
+            color: Colors.grey.withOpacity(0.9),
+          );
+          }
+          break;
+        case 2:
           page = Settings();
           titleIcon = Icon(
             FluentSystemIcons.ic_fluent_settings_dev_regular,
@@ -54,6 +67,7 @@ class _HomeState extends State<Home> {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
+                  actions:[IconButton.outlined(onPressed: ()=>_auth.signOut(), icon: Icon(Icons.logout_outlined))],
                   expandedHeight: expandedHeight,
                   floating: false,
                   pinned: true,
@@ -165,6 +179,11 @@ class _HomeState extends State<Home> {
                       icon: Icon(FluentSystemIcons.ic_fluent_home_regular),
                       activeIcon: Icon(FluentSystemIcons.ic_fluent_home_filled),
                       label: 'Home',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(FluentSystemIcons.ic_fluent_chat_regular),
+                      activeIcon: Icon(FluentSystemIcons.ic_fluent_chat_filled),
+                      label: 'Comms',
                     ),
                     BottomNavigationBarItem(
                       icon: Icon(

@@ -3,21 +3,16 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 class ThreeDotMenu extends StatefulWidget {
   final List<String> items;
   final String type;
   final String id;
 
-  
-   const ThreeDotMenu({
-    super.key, 
-    
-    required this.items, 
-    required this.type, 
+  const ThreeDotMenu({
+    super.key,
+    required this.items,
+    required this.type,
     required this.id,
-    
-    
   });
 
   @override
@@ -30,61 +25,63 @@ class _ThreeDotMenuState extends State<ThreeDotMenu> {
   bool _isProcessing = false;
 
   Future<bool> _showDeleteConfirmation(String type) async {
-    final String itemType = type.substring(0, type.length - 1); // Remove 's' from end
+    final String itemType =
+        type.substring(0, type.length - 1); // Remove 's' from end
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          title: Text(
-            'Delete $itemType',
-            style: GoogleFonts.lateef(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to delete this $itemType? This action cannot be undone.',
-            style: GoogleFonts.lateef(fontSize: 18),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text(
-                'Cancel',
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Text(
+                'Delete $itemType',
                 style: GoogleFonts.lateef(
-                  fontSize: 18,
-                  color: Colors.grey,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-            ),
-            TextButton(
-              child: Text(
-                'Delete',
-                style: GoogleFonts.lateef(
-                  fontSize: 18,
-                  color: Colors.red,
-                ),
+              content: Text(
+                'Are you sure you want to delete this $itemType? This action cannot be undone.',
+                style: GoogleFonts.lateef(fontSize: 18),
               ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-            ),
-          ],
-        );
-      },
-    ) ?? false; // Return false if dialog is dismissed
+              actions: <Widget>[
+                TextButton(
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.lateef(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: Text(
+                    'Delete',
+                    style: GoogleFonts.lateef(
+                      fontSize: 18,
+                      color: Colors.red,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false; // Return false if dialog is dismissed
   }
 
   Future<void> _deleteDocument(String collection, String id) async {
     final docRef = _firestore.collection(collection).doc(id);
     final docSnapshot = await docRef.get();
-    
+
     if (!docSnapshot.exists) {
       throw Exception('Document not found');
     }
@@ -92,7 +89,11 @@ class _ThreeDotMenuState extends State<ThreeDotMenu> {
     // If there's an image, delete it first
     final data = docSnapshot.data();
     if (data != null) {
-      final imagePath = data['packagePic'] ?? data['image'] ??data['imagePath'] ??data['profilePic'] ?? data['flashPic'];
+      final imagePath = data['packagePic'] ??
+          data['image'] ??
+          data['imagePath'] ??
+          data['profilePic'] ??
+          data['flashPic'];
       if (imagePath != null && imagePath.isNotEmpty) {
         try {
           final ref = _storage.refFromURL(imagePath);
@@ -110,155 +111,49 @@ class _ThreeDotMenuState extends State<ThreeDotMenu> {
   Future<void> _toggleVisibility(String collection, String id) async {
     final docRef = _firestore.collection(collection).doc(id);
     final docSnapshot = await docRef.get();
-    
+
     if (!docSnapshot.exists) {
       throw Exception('Document not found');
     }
-    
+
     final bool currentHidden = docSnapshot.data()?['hidden'] == 'true';
     await docRef.update({'hidden': (!currentHidden).toString()});
   }
 
   Future<void> _manageItem(String item, String type) async {
     if (_isProcessing || widget.id.isEmpty) return;
-    
+
     setState(() => _isProcessing = true);
     String type = widget.type;
-    
+
     try {
-      switch (type) {
-        case 'Packages':
-          switch (item) {
-            case 'Edit Package':
-              if (mounted) {
-                
-              }
-              break;
-              
-            case 'Hide Package':
-              await _toggleVisibility('Packages', widget.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Package visibility updated'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-              break;
-              
-            case 'Delete Package':
-              final shouldDelete = await _showDeleteConfirmation(type);
-              if (shouldDelete) {
-                await _deleteDocument('Packages', widget.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Package deleted successfully'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              }
-              break;
-          }
-          break;
-
-        case 'FlashAds':
-          switch (item) {
-            case 'Edit FlashAd':
-              if (mounted) {
-               
-              }
-              break;
-              
-            case 'Hide FlashAd':
-              await _toggleVisibility('FlashAds', widget.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('FlashAd visibility updated'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-              break;
-              
-            case 'Delete FlashAd':
-              final shouldDelete = await _showDeleteConfirmation(type);
-              if (shouldDelete) {
-                await _deleteDocument('FlashAds', widget.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('FlashAd deleted successfully'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              }
-              break;
-          }
-          break;
-
-        case 'Highlights':
-          switch (item) {
-            case 'Edit Highlight':
-              if (mounted) {
-                
-              }
-              break;
-              
-            case 'Hide Highlight':
-              await _toggleVisibility('Highlights', widget.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Highlight visibility updated'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-              break;
-              
-            case 'Delete Highlight':
-              final shouldDelete = await _showDeleteConfirmation(type);
-              if (shouldDelete) {
-                await _deleteDocument('Highlights', widget.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Highlight deleted successfully'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              }
-              break;
-          }
-          break;
-          default:{
-
-            switch(item){
-              
-              case 'Delete This':
-              final shouldDelete = await _showDeleteConfirmation(type);
-              if (shouldDelete) {
-                await _deleteDocument(widget.type, widget.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                     SnackBar(
-                      content: Text('${widget.type} deleted successfully'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              }
-              break;
+      switch (item) {
+        case 'Delete This':
+          final shouldDelete = await _showDeleteConfirmation(type);
+          if (shouldDelete) {
+            await _deleteDocument(widget.type, widget.id);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${widget.type} deleted successfully'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             }
-
-
           }
+          break;
+
+        case 'Hide This':
+          await _toggleVisibility(widget.type, widget.id);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${widget.type} visibility updated'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          break;
       }
     } catch (error) {
       if (mounted) {

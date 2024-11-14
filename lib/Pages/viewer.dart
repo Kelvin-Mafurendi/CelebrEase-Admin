@@ -43,7 +43,12 @@ class _DetailScreenState extends State<DetailScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            actions: [ThreeDotMenu(items: ['Delete This'], type: widget.collectionName, id: widget.document)],
+            actions: [
+              ThreeDotMenu(
+                  items: ['Hide This', 'Delete This'],
+                  type: widget.collectionName,
+                  id: widget.document)
+            ],
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
@@ -52,6 +57,8 @@ class _DetailScreenState extends State<DetailScreen> {
                     ? (data['business name'] ??
                         data['packageName'] ??
                         data['title'] ??
+                        data['serviceName'] ??
+                        data['bannerName'] ??
                         data['name'] ??
                         (widget.document != '' && widget.document.length < 20
                             ? widget.document
@@ -71,14 +78,16 @@ class _DetailScreenState extends State<DetailScreen> {
                     child: (data['profilePic'] ??
                                 data['packagePic'] ??
                                 data['adPic'] ??
-                                data['image'] ??
+                                data['servicePic'] ??
+                                data['bannerPic'] ??
                                 data['imagePath']) !=
                             null
                         ? Image.network(
                             data['profilePic'] ??
                                 data['packagePic'] ??
                                 data['adPic'] ??
-                                data['image'] ??
+                                data['bannerPic'] ??
+                                data['servicePic'] ??
                                 data['imagePath']!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>

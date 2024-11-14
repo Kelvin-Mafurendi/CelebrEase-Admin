@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:celebrease_manager/Pages/uploat_post.dart';
 import 'package:celebrease_manager/Pages/viewer.dart';
+import 'package:celebrease_manager/modules/sample.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluentui_icons/fluentui_icons.dart';
@@ -33,14 +35,14 @@ class ItemModel {
               createdAt: (data['timeStamp'] as Timestamp).toDate(),
               image: data['packagePic']);
         }
-        case 'banners':
+      case 'banners':
         {
           return ItemModel(
               id: doc.id,
-              name: 'Banner',
+              name: data['bannerName'],
               description: '',
               createdAt: DateTime.now(),
-              image: data['image']);
+              image: data['bannerPic']);
         }
       case 'Vendors':
         {
@@ -76,7 +78,7 @@ class ItemModel {
               name: doc.id,
               description: 'Service',
               createdAt: DateTime.now(),
-              image: data['imagePath']);
+              image: data['servicePic']);
         }
 
       default:
@@ -110,7 +112,6 @@ class _MainScreenState extends State<MainScreen>
       label: 'Banners',
       collection: 'banners'
     ),
-    
     (
       icon: FluentSystemIcons.ic_fluent_settings_regular,
       label: 'Services',
@@ -164,7 +165,7 @@ class _MainScreenState extends State<MainScreen>
   Stream<List<ItemModel>> _getCollectionStream(String collection) {
     return _firestore
         .collection(collection)
-        // .orderBy('timeStamp', descending: true)
+        .orderBy('timeStamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => ItemModel.fromFirestore(doc, collection))
@@ -220,6 +221,7 @@ class _MainScreenState extends State<MainScreen>
                 .toList(),
           ),
         ),
+        
       ],
     );
   }
@@ -249,108 +251,134 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Widget _buildTabContent(String collection, String label) {
-    return StreamBuilder<List<ItemModel>>(
-      stream: _getCollectionStream(collection),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Stack(children: [
+      StreamBuilder<List<ItemModel>>(
+        stream: _getCollectionStream(collection),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
 
-        final List items = snapshot.data ?? [];
+          final List items = snapshot.data ?? [];
 
-        if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  FluentSystemIcons.ic_fluent_storage_regular,
-                  size: 48,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No ${label.toLowerCase()} found',
-                  style: const TextStyle(
-                    fontSize: 16,
+          if (items.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    FluentSystemIcons.ic_fluent_storage_regular,
+                    size: 48,
                     color: Colors.grey,
                   ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding:
-              const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 40),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Card(
-              elevation: 2,
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: CircleAvatar(
-                  backgroundColor:
-                      Theme.of(context).primaryColor.withOpacity(0.1),
-                  child: item.image != null
-                      ? ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: item.image,
-                            fit: BoxFit
-                                .cover, // Adjust the image to cover the circle without distortion
-                            width: double
-                                .infinity, // Ensures the image fills the CircleAvatar width
-                            height: double
-                                .infinity, // Ensures the image fills the CircleAvatar height
-                          ),
-                        )
-                      : Icon(
-                          FluentSystemIcons.ic_fluent_storage_regular,
-                          color: Colors.grey.withOpacity(0.9),
-                        ),
-                ),
-                title: Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Text(
-                  item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.fade,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                trailing: const Icon(
-                    FluentSystemIcons.ic_fluent_chevron_right_regular),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DetailScreen(
-                        collectionName: collection,
-                        document: item.id, 
-                      ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No ${label.toLowerCase()} found',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             );
-          },
-        );
-      },
-    );
+          }
+
+          return ListView.builder(
+            padding:
+                const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 40),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        Theme.of(context).primaryColor.withOpacity(0.1),
+                    child: item.image != null
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: item.image,
+                              fit: BoxFit
+                                  .cover, // Adjust the image to cover the circle without distortion
+                              width: double
+                                  .infinity, // Ensures the image fills the CircleAvatar width
+                              height: double
+                                  .infinity, // Ensures the image fills the CircleAvatar height
+                            ),
+                          )
+                        : Icon(
+                            FluentSystemIcons.ic_fluent_storage_regular,
+                            color: Colors.grey.withOpacity(0.9),
+                          ),
+                  ),
+                  title: Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    item.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.fade,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  trailing: const Icon(
+                      FluentSystemIcons.ic_fluent_chevron_right_regular),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailScreen(
+                          collectionName: collection,
+                          document: item.id,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+      if (collection != 'Vendors' && collection != 'Customers')
+        Positioned(
+          bottom: 50,
+          right: 10,
+          child: FloatingActionButton(
+              backgroundColor: Colors.red.withOpacity(0),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DynamicForm(
+                      formType: collection == 'FlashAds'
+                          ? FormType.flashAd
+                          : collection == 'banners'
+                              ? FormType.banner
+                              : collection == 'Services'
+                                  ? FormType.service
+                                  : FormType.package,
+                    ),
+                  ),
+                );
+              },
+              child: Icon(FluentSystemIcons.ic_fluent_add_regular)),
+        )
+    ]);
   }
 }

@@ -25,6 +25,8 @@ class ChangeManager extends ChangeNotifier {
     'package': {},
     'flashAd': {},
     'bookingForm': {},
+    'service': {}, // Added service
+    'banner': {}, // Added banner
   };
 
   // Service management
@@ -38,10 +40,12 @@ class ChangeManager extends ChangeNotifier {
   Map<String, dynamic> get packageData => _dataStore['package']!;
   Map<String, dynamic> get flashAd => _dataStore['flashAd']!;
   Map<String, dynamic> get bookingForm => _dataStore['bookingForm']!;
+  Map<String, dynamic> get serviceData =>
+      _dataStore['service']!; // Added getter
+  Map<String, dynamic> get bannerData => _dataStore['banner']!; // Added getter
   List<String> get serviceTypes => _serviceTypes;
   bool get isLoadingServices => _isLoadingServices;
   String get selectedService => _selectedService;
-
   // Unified file upload handler
   // Modified uploadFile method with better null checking
   Future<String> uploadFile({
@@ -76,6 +80,7 @@ class ChangeManager extends ChangeNotifier {
   }
 
   // Unified data operation handler
+
   Future<void> handleData({
     required String dataType,
     required Map<String, dynamic> newData,
@@ -88,22 +93,28 @@ class ChangeManager extends ChangeNotifier {
     try {
       EasyLoading.show(status: 'Processing...');
 
-      // Get current user ID
+      // 1. Authentication Check
       final userId = _auth.currentUser?.uid;
       if (userId == null) {
         EasyLoading.dismiss();
         throw Exception('User not authenticated');
       }
 
-      // Create a copy of the data to modify
+      // 2. Initialize Data
       Map<String, dynamic> finalData = Map.from(newData);
 
-      // For updates, get the document ID if not provided
-      if (operation == OperationType.update && documentId == null) {
-        documentId = userId; // Use userId as documentId for profile updates
+      // 3. Handle Document ID
+      if (dataType == 'service' && operation == OperationType.create) {
+        if (!finalData.containsKey('serviceName')) {
+          EasyLoading.dismiss();
+          throw Exception('serviceName is required for creating a service');
+        }
+        documentId = finalData['serviceName'];
+      } else if (operation == OperationType.update && documentId == null) {
+        documentId = userId;
       }
 
-      // Generate search variations based on data type
+      // 4. Generate Search Variations
       switch (dataType) {
         case 'profile':
           if (finalData.containsKey('business name')) {
@@ -119,6 +130,22 @@ class ChangeManager extends ChangeNotifier {
           if (finalData.containsKey('packageName')) {
             finalData['searchPackageName'] =
                 generateSearchVariations(finalData['packageName']);
+          }
+          break;
+        case 'service':
+          if (finalData.containsKey('serviceName')) {
+            finalData['searchServiceName'] =
+                generateSearchVariations(finalData['serviceName']);
+          }
+          if (finalData.containsKey('description')) {
+            finalData['searchDescription'] =
+                generateSearchVariations(finalData['description']);
+          }
+          break;
+        case 'banner':
+          if (finalData.containsKey('title')) {
+            finalData['searchTitle'] =
+                generateSearchVariations(finalData['title']);
           }
           break;
         case 'flashAd':
@@ -139,7 +166,7 @@ class ChangeManager extends ChangeNotifier {
           break;
       }
 
-      // Handle file uploads if present
+      // 5. Handle File Uploads
       if (fileFields != null) {
         for (var entry in fileFields.entries) {
           final fieldName = entry.key;
@@ -163,7 +190,7 @@ class ChangeManager extends ChangeNotifier {
         }
       }
 
-      // Add metadata
+      // 6. Add Metadata
       if (operation == OperationType.create) {
         finalData.addAll({
           'userId': userId,
@@ -174,28 +201,28 @@ class ChangeManager extends ChangeNotifier {
         finalData['updatedAt'] = FieldValue.serverTimestamp();
       }
 
-      // Remove any null or empty values
+      // 7. Clean Data
       finalData.removeWhere(
           (key, value) => value == null || value.toString().isEmpty);
 
       if (finalData.isEmpty && operation == OperationType.update) {
         EasyLoading.dismiss();
-        return; // Nothing to update
+        return;
       }
 
+      // 8. Save to Firestore
       EasyLoading.show(status: 'Saving data...');
 
-      // Perform Firestore operation
       if (operation == OperationType.create) {
         final docRef = documentId != null
             ? _fireStore.collection(collection).doc(documentId)
             : _fireStore.collection(collection).doc();
+
         finalData['${dataType}Id'] = docRef.id;
         finalData['hidden'] = 'false';
 
         await docRef.set(finalData);
 
-        // Update local store with the new document ID
         if (documentId == null) {
           _dataStore[dataType]!['id'] = docRef.id;
         }
@@ -205,9 +232,7 @@ class ChangeManager extends ChangeNotifier {
           throw Exception('Document ID is required for update operations');
         }
 
-        // Handle profile updates
         if (dataType == 'profile') {
-          // First try to get existing profile document
           final querySnapshot = await _fireStore
               .collection(collection)
               .where('userId', isEqualTo: userId)
@@ -215,17 +240,14 @@ class ChangeManager extends ChangeNotifier {
 
           DocumentReference docRef;
           if (querySnapshot.docs.isNotEmpty) {
-            // Update existing document
             docRef = querySnapshot.docs.first.reference;
           } else {
-            // Create new document if none exists
             docRef = _fireStore.collection(collection).doc();
             finalData['userId'] = userId;
           }
 
           await docRef.set(finalData, SetOptions(merge: true));
         } else {
-          // Handle non-profile updates
           await _fireStore
               .collection(collection)
               .doc(documentId)
@@ -233,16 +255,17 @@ class ChangeManager extends ChangeNotifier {
         }
       }
 
-      // Update local data store
+      // 9. Update Local Data Store
       _dataStore[dataType] = {..._dataStore[dataType] ?? {}, ...finalData};
 
-      // Clear the temporary image paths after successful upload
+      // 10. Clean Up
       if (fileFields != null) {
         for (var entry in fileFields.entries) {
           clearImage(dataType, entry.key);
         }
       }
 
+      // 11. Notify Listeners and Show Success
       notifyListeners();
       EasyLoading.dismiss();
       EasyLoading.showSuccess('Saved successfully');
@@ -252,6 +275,61 @@ class ChangeManager extends ChangeNotifier {
       EasyLoading.showError('Error: ${e.toString()}');
       rethrow;
     }
+  }
+
+  Future<void> createNewService(Map<String, dynamic> serviceData) async {
+    await handleData(
+      dataType: 'service',
+      newData: serviceData,
+      collection: 'Services',
+      operation: OperationType.create,
+      fileFields: {
+        'servicePicPath': 'ServiceImages',
+        'serviceIconPath': 'ServiceIcons',
+      },
+    );
+  }
+
+  Future<void> updateExistingService(
+      String serviceId, Map<String, dynamic> updates) async {
+    await handleData(
+      dataType: 'service',
+      newData: updates,
+      collection: 'Services',
+      operation: OperationType.update,
+      documentId: serviceId,
+      fileFields: {
+        'servicePicPath': 'ServiceImages',
+        'serviceIconPath': 'ServiceIcons',
+      },
+    );
+  }
+
+  // New methods for banners
+  Future<void> createNewBanner(Map<String, dynamic> bannerData) async {
+    await handleData(
+      dataType: 'banner',
+      newData: bannerData,
+      collection: 'Banners',
+      operation: OperationType.create,
+      fileFields: {
+        'bannerImagePath': 'BannerImages',
+      },
+    );
+  }
+
+  Future<void> updateExistingBanner(
+      String bannerId, Map<String, dynamic> updates) async {
+    await handleData(
+      dataType: 'banner',
+      newData: updates,
+      collection: 'Banners',
+      operation: OperationType.update,
+      documentId: bannerId,
+      fileFields: {
+        'bannerImagePath': 'BannerImages',
+      },
+    );
   }
 
   // Example usage methods
@@ -641,4 +719,53 @@ class ChangeManager extends ChangeNotifier {
     _dataStore[dataType]?.remove(fieldName);
     notifyListeners();
   }
+  Future<void> recoverServices() async {
+    try {
+      EasyLoading.show(status: 'Recovering services...');
+      
+      // Get reference to the root collection
+      final CollectionReference servicesBackupRef = _fireStore.collection('Services_backups');
+      
+      // Query to get all backup documents
+      final QuerySnapshot backupDocs = await servicesBackupRef.get();
+      
+      if (backupDocs.docs.isEmpty) {
+        EasyLoading.showError('No backup found');
+        return;
+      }
+      
+      // Find the most recent backup by comparing document IDs
+      final latestBackup = backupDocs.docs
+          .reduce((a, b) => a.id.compareTo(b.id) > 0 ? a : b);
+      
+      // Copy data back to main collection
+      final batch = _fireStore.batch();
+      
+      // Get the actual backup data
+      final backupCollectionRef = _fireStore.collection('Services_backup_${latestBackup.id}');
+      final backupData = await backupCollectionRef.get();
+      
+      for (var doc in backupData.docs) {
+        batch.set(
+          _fireStore.collection('Services').doc(doc.id),
+          doc.data(),
+          SetOptions(merge: true)
+        );
+      }
+      
+      await batch.commit();
+      EasyLoading.showSuccess('Recovery complete');
+      
+    } catch (e) {
+      print('Error during recovery: $e');
+      EasyLoading.showError('Recovery failed: ${e.toString()}');
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+
+  
 }
+
+
